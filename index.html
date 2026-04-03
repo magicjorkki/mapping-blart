@@ -18,7 +18,7 @@
         <img
           src="web_data/blart.png"
           alt="Blart graffiti tag"
-          style="width: 200px; display: block; object-fit: cover"
+          class="blart-img"
         />
 
         <div class="control-group">
@@ -37,11 +37,26 @@
             <option value="blart_txt">Has Blart Text</option>
             <option value="eyes">Has Eyes</option>
             <option value="nose">Has Nose</option>
-            <option value="simpson">Simpson Design</option>
+            <option value="simpson">Has Simpson Design</option>
             <option value="not_spray">Is Not Spray</option>
             <option value="private_prop">Private Property</option>
             <option value="view_direction">View Direction</option>
           </select>
+        </div>
+
+        <div class="control-group" id="legend-container">
+          <label>On the map</label>
+          <div id="legend-content"></div>
+        </div>
+
+        <div class="toggle-container">
+          <label class="switch">
+            <input type="checkbox" id="unsure-toggle" />
+            <span class="slider"></span>
+          </label>
+          <label for="unsure-toggle" style="cursor: pointer"
+            >Show "Unsure" points</label
+          >
         </div>
       </aside>
 

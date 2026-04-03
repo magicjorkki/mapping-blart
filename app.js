@@ -4,6 +4,17 @@ let csvData = [];
 let currentLayer;
 let markerGroup; // Holds all markers so we can clear them easily
 
+// Global color dictionary for dynamic map and legend updates
+const colorMap = {
+  blue: "#2590d7",
+  pink: "#ea33bf",
+  black: "#111111",
+  red: "#d43a3a",
+  green: "#11be7f",
+  yellow: "#e6cb18",
+  white: "#f4f4f4",
+};
+
 const tileLayers = {
   osm: L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"),
   satellite: L.tileLayer(
@@ -33,6 +44,11 @@ function initMap() {
       renderMarkers(); // Re-draw points when selection changes
     });
 
+  // Unsure Toggle Switcher
+  document.getElementById("unsure-toggle").addEventListener("change", () => {
+    renderMarkers(); // Re-draw points when toggle changes
+  });
+
   loadCSV();
 }
 
@@ -48,17 +64,84 @@ function loadCSV() {
   });
 }
 
+// --- 4. LEGEND GENERATOR ---
+function updateLegend(styleMode) {
+  const legendContent = document.getElementById("legend-content");
+  let html = "";
+
+  // Helper function to build a legend row
+  const makeRow = (cssClass, label, isHex = false, isArrow = false) => {
+    let styleStr = isHex ? `background-color: ${cssClass};` : "";
+    let classStr = isArrow
+      ? "legend-arrow"
+      : `legend-shape ${isHex ? "" : cssClass}`;
+
+    return `<div class="legend-item">
+              <div class="${classStr}" style="${styleStr}"></div>
+              <span>${label}</span>
+            </div>`;
+  };
+
+  // Generate the right HTML based on the dropdown choice
+  if (styleMode === "simple") {
+    html += makeRow("#3498db", "Blart Point", true);
+  } else if (styleMode === "view_direction") {
+    html += makeRow("", "Camera Direction", false, true);
+  } else if (styleMode === "blart_txt") {
+    html += makeRow("blart-true", "Has Blart Text");
+    html += makeRow("blart-false", "No Blart Text");
+  } else if (styleMode === "eyes") {
+    html += makeRow("eyes-true", "Has Eyes");
+    html += makeRow("eyes-false", "No Eyes");
+  } else if (styleMode === "nose") {
+    html += makeRow("nose-true", "Has Nose");
+    html += makeRow("nose-false", "No Nose");
+  } else if (styleMode === "simpson") {
+    html += makeRow("simpson-true", "Simpson Design");
+    html += makeRow("simpson-false", "Other");
+  } else if (styleMode === "not_spray") {
+    html += makeRow("spray-true", "Is Spray");
+    html += makeRow("spray-false", "Other (marker)");
+  } else if (styleMode === "private_prop") {
+    html += makeRow("private-true", "Private Property");
+    html += makeRow("private-false", "Public / Other");
+  } else if (styleMode === "main_col") {
+    // Dynamically generate the legend directly from the colorMap
+    for (const [colorName, hexCode] of Object.entries(colorMap)) {
+      // Capitalize the first letter for the label
+      const label = colorName.charAt(0).toUpperCase() + colorName.slice(1);
+      html += makeRow(hexCode, label, true);
+    }
+    // Add the fallback color for missing data
+    html += makeRow("#878c8c38", "Other / Missing", true);
+  }
+
+  legendContent.innerHTML = html;
+}
+
 // --- 3. RENDERING LOGIC ---
 function renderMarkers() {
   // Clear existing markers before drawing new ones
   markerGroup.clearLayers();
 
-  // Find out what the user selected in the dropdown
+  // Find out what the user selected in the dropdowns
   const styleMode = document.getElementById("point-coloring-selector").value;
+  const showUnsure = document.getElementById("unsure-toggle").checked;
+
+  // Update the legend right before we draw the points
+  updateLegend(styleMode);
 
   csvData.forEach((row) => {
     const lat = parseFloat(row.lat);
     const lon = parseFloat(row.lon);
+
+    // Evaluate if the point is unsure
+    const isUnsure = String(row.unsure).trim().toLowerCase() === "true";
+
+    // If it is unsure and the toggle is OFF, skip rendering this point
+    if (isUnsure && !showUnsure) {
+      return;
+    }
 
     if (!isNaN(lat) && !isNaN(lon)) {
       let className = "marker-inner"; // The default round shape
@@ -85,21 +168,10 @@ function renderMarkers() {
         const isTrue = String(row.spray).toLowerCase() === "true";
         className += isTrue ? " spray-true" : " spray-false";
       } else if (styleMode === "main_col") {
-        // Define your custom hex codes for each possible CSV value
-        const colorMap = {
-          blue: "#2590d7",
-          pink: "#ea338b",
-          black: "#111111",
-          red: "#d4493a",
-          green: "#1fcf8f",
-          yellow: "#e6cb18",
-          white: "#f4f4f4",
-        };
-
-        // Clean the CSV string (make lowercase and remove extra spaces) to ensure it matches
+        // Clean the CSV string (make lowercase and remove extra spaces)
         const csvColor = (row.main_col || "").toString().trim().toLowerCase();
 
-        // Look up the hex code. If the color isn't in the list, default to grey (#95a5a6)
+        // Look up the hex code from the GLOBAL list. Default to grey fallback.
         const mappedHex = colorMap[csvColor] || "#878c8c38";
 
         inlineStyle = `background-color: ${mappedHex}; border-color: ${mappedHex === "#ffffff" ? "#ccc" : "#fff"};`;
@@ -127,10 +199,7 @@ function renderMarkers() {
         }
       }
 
-      // HTML content for the popup
       // --- CONDITIONAL TAGS ---
-      // Check if the "unsure" column is True
-      const isUnsure = String(row.unsure).trim().toLowerCase() === "true";
       const unsureTag = isUnsure
         ? `<span class="category-tag">UNSURE</span>`
         : "";
