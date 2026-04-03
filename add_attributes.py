@@ -36,7 +36,7 @@ def label_images():
         print(f"Error: {csv_file} not found.")
         return
     
-    df = pd.read_csv(csv_file, sep=';')
+    df = pd.read_csv(csv_file, sep=',')
 
     for col in boolean_attrs + text_attrs:
         if col not in df.columns:

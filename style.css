@@ -1,0 +1,218 @@
+/* --- Layout & Resets --- */
+body,
+html {
+  margin: 0;
+  padding: 0;
+  font-family: sans-serif;
+  height: 100%;
+  overflow: hidden;
+}
+
+/* Main Container */
+#view-map {
+  display: flex;
+  height: 100vh;
+  width: 100vw;
+}
+
+/* Sidebar */
+.sidebar {
+  width: 280px;
+  background: #f8f9fa;
+  padding: 20px;
+  box-shadow: 2px 0 5px rgba(0, 0, 0, 0.1);
+  z-index: 1000;
+  display: flex;
+  flex-direction: column;
+  gap: 20px; /* Spaces out the map controls nicely */
+}
+
+.sidebar h2 {
+  margin-top: 0;
+  margin-bottom: 5px;
+  color: #2c3e50;
+}
+
+/* Control Groups (Dropdowns) */
+.control-group {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.control-group label {
+  font-weight: bold;
+  font-size: 0.9rem;
+  color: #333;
+}
+
+.control-group select {
+  padding: 8px;
+  border-radius: 4px;
+  border: 1px solid #ccc;
+  font-size: 14px;
+}
+
+/* Map */
+#map {
+  flex-grow: 1;
+  height: 100%;
+}
+
+/* --- CSS Markers --- */
+.custom-marker {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.marker-inner {
+  width: 14px;
+  height: 14px;
+  background-color: #3498db;
+  border: 2px solid white;
+  border-radius: 50%;
+  box-shadow: 0 0 5px rgba(0, 0, 0, 0.5);
+  transition: transform 0.2s;
+}
+
+.marker-inner:hover {
+  background-color: #233043;
+  transform: scale(1.4);
+  cursor: pointer;
+}
+
+/* --- 1. Resetting Leaflet's Default White Box --- */
+.leaflet-custom-container .leaflet-popup-content-wrapper {
+  padding: 0;
+  background: none;
+  box-shadow: none;
+}
+
+.leaflet-custom-container .leaflet-popup-content {
+  margin: 0;
+  width: 280px !important;
+}
+
+.leaflet-custom-container .leaflet-popup-tip-container {
+  display: none; /* Hides the default white triangle tip */
+}
+
+/* --- 2. Custom Popup Styling --- */
+.my-custom-popup {
+  background: white;
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+  font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+}
+
+.popup-img {
+  width: 100%;
+  height: 180px;
+  object-fit: cover;
+  display: block;
+}
+
+.popup-body {
+  padding: 15px;
+}
+
+.category-tag {
+  background: #e1f5fe;
+  color: #03a9f4;
+  font-size: 10px;
+  text-transform: uppercase;
+  font-weight: bold;
+  padding: 4px 6px;
+  border-radius: 4px;
+  margin-right: 4px;
+  margin-bottom: 10px;
+  display: inline-block;
+}
+
+.my-custom-popup p {
+  font-size: 12px;
+  color: #777;
+  margin: 0px 0 10px 0;
+}
+
+.popup-btn {
+  width: 100%;
+  background: #007bff;
+  color: white;
+  border: none;
+  padding: 10px;
+  border-radius: 5px;
+  cursor: pointer;
+  transition: 0.2s;
+  font-weight: bold;
+}
+
+.popup-btn:hover {
+  background: #0056b3;
+}
+
+/* --- Dynamic Marker Styles --- */
+
+/* 1. View Direction (Arrow pointing up by default) */
+.marker-arrow {
+  width: 0;
+  height: 0;
+  border-left: 6px solid transparent;
+  border-right: 6px solid transparent;
+  border-bottom: 18px solid #e74c3c; /* Red arrow */
+  filter: drop-shadow(0 2px 2px rgba(0, 0, 0, 0.5));
+  transition: transform 0.3s;
+}
+
+/* 2. Has Blart Text */
+.blart-true {
+  background-color: #9b59b6 !important;
+} /* Purple */
+.blart-false {
+  background-color: #ecf0f1 !important;
+  border-color: #bdc3c7 !important;
+} /* Off-white */
+
+/* 3. Has Eyes */
+.eyes-true {
+  background-color: #e67e22 !important;
+} /* Orange */
+.eyes-false {
+  background-color: #7f8c8d !important;
+} /* Grey */
+
+/* 4. Has Nose */
+.nose-true {
+  background-color: #16a085 !important;
+} /* Teal */
+.nose-false {
+  background-color: #bdc3c7 !important;
+} /* Light Grey */
+
+/* 5. Simpson Design */
+.simpson-true {
+  background-color: #f1c40f !important;
+  border-color: #333 !important;
+} /* Yellow w/ dark border */
+.simpson-false {
+  background-color: #95a5a6 !important;
+}
+
+/* 6. Is NOT Spray */
+/* If spray is FALSE (meaning it is NOT spray), color it Green. If spray is TRUE, color it Red */
+.spray-false {
+  background-color: #2ecc71 !important;
+} /* Green (Is not spray) */
+.spray-true {
+  background-color: #e74c3c !important;
+} /* Red (Is spray) */
+
+/* 7. Private Property */
+.private-true {
+  background-color: #c0392b !important;
+} /* Dark Red */
+.private-false {
+  background-color: #27ae60 !important;
+} /* Dark Green */

@@ -94,7 +94,7 @@ def write_to_csv(data, csv_file):
     if os.path.exists(csv_file):
         try:
             with open(csv_file, mode='r', encoding='utf-8') as blarts_file:
-                reader = csv.reader(blarts_file, delimiter=';')
+                reader = csv.reader(blarts_file, delimiter=',')
                 next(reader, None)
                 for row in reader:
                     if row:
@@ -104,7 +104,7 @@ def write_to_csv(data, csv_file):
 
     file_is_new = not os.path.exists(csv_file)
     with open(csv_file, mode='a', newline='', encoding='utf-8') as blarts_file:
-        results_writer = csv.writer(blarts_file, delimiter=';', quotechar='"', quoting=csv.QUOTE_MINIMAL)
+        results_writer = csv.writer(blarts_file, delimiter=',', quotechar='"', quoting=csv.QUOTE_MINIMAL)
         # Header if new file
         if file_is_new:
             results_writer.writerow(['img','time','lat','lon','dir',
@@ -138,7 +138,7 @@ def main(img_input_folder, img_output_folder, csv_file):
     if os.path.exists(csv_file):
         try:
             with open(csv_file, mode='r', encoding='utf-8') as blarts_csv:
-                reader = csv.reader(blarts_csv, delimiter=';')
+                reader = csv.reader(blarts_csv, delimiter=',')
                 next(reader, None)
                 for row in reader:
                     if row:

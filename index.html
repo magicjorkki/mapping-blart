@@ -1,20 +1,52 @@
 <!doctype html>
-<html>
+<html lang="en">
   <head>
-    <title>CSV Map Project</title>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Mapping Blart</title>
+    <link rel="icon" type="image/x-icon" href="web_data/favicon.ico" />
+
     <link
       rel="stylesheet"
       href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
     />
-    <style>
-      #map {
-        height: 600px;
-        width: 100%;
-      }
-    </style>
+    <link rel="stylesheet" href="style.css" />
   </head>
   <body>
-    <div id="map"></div>
+    <div id="view-map">
+      <aside class="sidebar">
+        <img
+          src="web_data/blart.png"
+          alt="Blart graffiti tag"
+          style="width: 200px; display: block; object-fit: cover"
+        />
+
+        <div class="control-group">
+          <label>Map</label>
+          <select id="tile-selector">
+            <option value="satellite">Satellite (Esri)</option>
+            <option value="osm">OpenStreetMap</option>
+          </select>
+        </div>
+
+        <div class="control-group">
+          <label>Point style</label>
+          <select id="point-coloring-selector">
+            <option value="simple">Simple (Default)</option>
+            <option value="main_col">Main Color</option>
+            <option value="blart_txt">Has Blart Text</option>
+            <option value="eyes">Has Eyes</option>
+            <option value="nose">Has Nose</option>
+            <option value="simpson">Simpson Design</option>
+            <option value="not_spray">Is Not Spray</option>
+            <option value="private_prop">Private Property</option>
+            <option value="view_direction">View Direction</option>
+          </select>
+        </div>
+      </aside>
+
+      <div id="map"></div>
+    </div>
 
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.2/papaparse.min.js"></script>
