@@ -1,3 +1,10 @@
+/* Variables & Layout */
+:root {
+  --light-blue: #e0e5ec;
+  --middle-blue: #5790ab;
+  --dark-blue: #11181c;
+}
+
 body,
 html {
   margin: 0;
@@ -7,34 +14,34 @@ html {
   overflow: hidden;
 }
 
-#view-map {
+#main-div {
   display: flex;
   height: 100vh;
   width: 100vw;
 }
 
-.blart-img {
-  width: 100%;
-  height: 100px;
-  display: block;
-  object-fit: contain;
-}
-
+/* Sidebar & Controls */
 .sidebar {
   width: 280px;
-  background: #f8f9fa;
+  background: var(--dark-blue);
   padding: 20px;
-  box-shadow: 2px 0 5px rgba(0, 0, 0, 0.1);
   z-index: 1000;
   display: flex;
   flex-direction: column;
   gap: 20px;
 }
 
+#blart-img {
+  width: 100%;
+  height: 100px;
+  object-fit: contain;
+  filter: invert(100%);
+}
+
 .sidebar h2 {
-  margin-top: 0;
-  margin-bottom: 5px;
-  color: #2c3e50;
+  font-size: 18px;
+  margin: 0;
+  color: var(--light-blue);
 }
 
 .control-group {
@@ -43,23 +50,19 @@ html {
   gap: 8px;
 }
 
-.control-group label {
-  font-weight: bold;
-  font-size: 0.9rem;
-  color: #333;
-}
-
 .control-group select {
   padding: 8px;
-  border-radius: 4px;
-  border: 1px solid #ccc;
+  border-radius: 8px;
+  background-color: var(--light-blue);
+  border: 0px;
   font-size: 14px;
 }
 
-/* Map */
+/* Map & Markers */
 #map {
   flex-grow: 1;
   height: 100%;
+  background: black;
 }
 
 .custom-marker {
@@ -84,6 +87,39 @@ html {
   cursor: pointer;
 }
 
+.marker-arrow {
+  width: 0;
+  height: 0;
+  border-left: 6px solid transparent;
+  border-right: 6px solid transparent;
+  border-bottom: 18px solid #4fb0f1;
+  filter: drop-shadow(0 2px 2px rgba(0, 0, 0, 1));
+  transition: transform 0.3s;
+}
+
+/* Marker Color Classes */
+.blart-true,
+.eyes-true,
+.nose-true,
+.spray-false,
+.private-false {
+  background-color: #59b667 !important;
+}
+
+.blart-false,
+.eyes-false,
+.nose-false,
+.simpson-false,
+.spray-true,
+.private-true {
+  background-color: #d04b2a !important;
+}
+
+.simpson-true {
+  background-color: #ffe30c !important;
+}
+
+/* Popups */
 .leaflet-custom-container .leaflet-popup-content-wrapper {
   padding: 0;
   background: none;
@@ -95,7 +131,11 @@ html {
   width: 280px !important;
 }
 
-.my-custom-popup {
+.leaflet-popup-close-button {
+  display: none;
+}
+
+.point-popup {
   background: white;
   border-radius: 12px;
   overflow: hidden;
@@ -127,7 +167,7 @@ html {
   display: inline-block;
 }
 
-.my-custom-popup p {
+.point-popup p {
   font-size: 12px;
   color: #777;
   margin: 0px 0 10px 0;
@@ -149,89 +189,38 @@ html {
   background: #0056b3;
 }
 
-.marker-arrow {
-  width: 0;
-  height: 0;
-  border-left: 6px solid transparent;
-  border-right: 6px solid transparent;
-  border-bottom: 18px solid #4fb0f1; /* Red arrow */
-  filter: drop-shadow(0 2px 2px rgba(0, 0, 0, 1));
-  transition: transform 0.3s;
-}
-
-/* 2. Has Blart Text */
-.blart-true {
-  background-color: #59b667 !important;
-} /* Purple */
-.blart-false {
-  background-color: #d04b2a !important;
-} /* Off-white */
-
-/* 3. Has Eyes */
-.eyes-true {
-  background-color: #59b667 !important;
-} /* Orange */
-.eyes-false {
-  background-color: #d04b2a !important;
-} /* Grey */
-
-/* 4. Has Nose */
-.nose-true {
-  background-color: #59b667 !important;
-} /* Teal */
-.nose-false {
-  background-color: #d04b2a !important;
-} /* Light Grey */
-
-/* 5. Simpson Design */
-.simpson-true {
-  background-color: #ffe30c !important;
-} /* Yellow w/ dark border */
-.simpson-false {
-  background-color: #d04b2a !important;
-}
-
-/* 6. Is NOT Spray */
-/* If spray is FALSE (meaning it is NOT spray), color it Green. If spray is TRUE, color it Red */
-.spray-false {
-  background-color: #59b667 !important;
-} /* Green (Is not spray) */
-.spray-true {
-  background-color: #d04b2a !important;
-} /* Red (Is spray) */
-
-/* 7. Private Property */
-.private-true {
-  background-color: #d04b2a !important;
-} /* Dark Red */
-.private-false {
-  background-color: #59b667 !important;
-} /* Dark Green */
-
-/* --- Legend Styles --- */
+/* Legend */
 #legend-container {
   margin-top: 0px;
   padding-top: 0px;
 }
 
+#legend-content {
+  padding-left: 2px;
+  padding-top: 4px;
+}
+
 .legend-item {
   display: flex;
   align-items: center;
-  gap: 10px;
-  margin-bottom: 8px;
-  font-size: 13px;
-  color: #444;
+  justify-content: space-between;
+  width: 100%;
+  margin-bottom: 10px;
+  font-size: 14px;
+  color: var(--light-blue);
 }
 
-/* Base shape for legend dots (matches the map circles) */
+.legend-item span {
+  color: #dedede;
+}
+
 .legend-shape {
-  width: 14px;
-  height: 14px;
+  width: 18px;
+  height: 18px;
   border-radius: 50%;
-  border: 1px solid #cdcdcd;
+  border: 1.5px solid white;
 }
 
-/* Specific override if the arrow is selected */
 .legend-arrow {
   width: 0;
   height: 0;
@@ -243,19 +232,19 @@ html {
   background: none;
 }
 
-/* --- Toggle Switch Styles --- */
+/* Toggles */
 .toggle-container {
   display: flex;
   align-items: center;
   gap: 10px;
-  margin-top: auto; /* Pushes the toggle to the bottom of the sidebar */
+  margin-top: auto;
   padding-top: 15px;
-  border-top: 1px solid #ddd;
+  cursor: pointer;
 }
 
-.toggle-container label {
+.toggle-text {
   font-size: 0.9rem;
-  color: #333;
+  color: #e6e6e6;
   font-weight: bold;
 }
 
@@ -302,8 +291,4 @@ input:checked + .slider {
 
 input:checked + .slider:before {
   transform: translateX(20px);
-}
-
-.leaflet-popup-close-button {
-  display: none;
 }

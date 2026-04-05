@@ -1,10 +1,10 @@
-// --- GLOBAL VARIABLES ---
+// Application State
 let map;
 let csvData = [];
 let currentLayer;
-let markerGroup; // Holds all markers so we can clear them easily
+let markerGroup;
+let hiddenClasses = new Set();
 
-// Global color dictionary for dynamic map and legend updates
 const colorMap = {
   blue: "#2590d7",
   pink: "#ea33bf",
@@ -22,213 +22,259 @@ const tileLayers = {
   ),
 };
 
-// --- 1. MAP INITIALIZATION ---
-function initMap() {
+// Initialization
+window.addEventListener("load", initializeApp);
+
+function initializeApp() {
   map = L.map("map").setView([62.6006023, 29.7621209], 13);
   currentLayer = tileLayers.satellite.addTo(map);
-
-  // Initialize the LayerGroup for markers
   markerGroup = L.layerGroup().addTo(map);
 
-  // Map Tile Switcher
-  document.getElementById("tile-selector").addEventListener("change", (e) => {
-    map.removeLayer(currentLayer);
-    currentLayer = tileLayers[e.target.value];
-    currentLayer.addTo(map);
-  });
-
-  // Point Style Switcher
-  document
-    .getElementById("point-coloring-selector")
-    .addEventListener("change", () => {
-      renderMarkers(); // Re-draw points when selection changes
-    });
-
-  // Unsure Toggle Switcher
-  document.getElementById("unsure-toggle").addEventListener("change", () => {
-    renderMarkers(); // Re-draw points when toggle changes
-  });
-
-  loadCSV();
+  setupEventListeners();
+  fetchData();
 }
 
-// --- 2. DATA HANDLING ---
-function loadCSV() {
+function setupEventListeners() {
+  document
+    .getElementById("map-selector")
+    .addEventListener("change", function (event) {
+      map.removeLayer(currentLayer);
+      currentLayer = tileLayers[event.target.value];
+      currentLayer.addTo(map);
+    });
+
+  document
+    .getElementById("point-coloring-selector")
+    .addEventListener("change", function () {
+      hiddenClasses.clear();
+      renderMapPoints();
+    });
+
+  document
+    .getElementById("unsure-toggle")
+    .addEventListener("change", function () {
+      renderMapPoints();
+    });
+}
+
+// Data Handling
+function fetchData() {
   Papa.parse("data/csv/blart.csv", {
     download: true,
     header: true,
     complete: function (results) {
       csvData = results.data;
-      renderMarkers();
+      renderMapPoints();
     },
   });
 }
 
-// --- 4. LEGEND GENERATOR ---
-function updateLegend(styleMode) {
+// Rendering Logic
+function renderMapPoints() {
+  markerGroup.clearLayers();
+
+  const styleMode = document.getElementById("point-coloring-selector").value;
+  const showUnsure = document.getElementById("unsure-toggle").checked;
+
+  let classCounts = {};
+  let totalVisibleCount = 0;
+
+  for (const row of csvData) {
+    const lat = parseFloat(row.lat);
+    const lon = parseFloat(row.lon);
+    const isUnsure = String(row.unsure).trim().toLowerCase() === "true";
+
+    if ((isUnsure && !showUnsure) || isNaN(lat) || isNaN(lon)) {
+      continue;
+    }
+
+    const styleData = determinePointStyle(row, styleMode);
+
+    classCounts[styleData.pointId] = (classCounts[styleData.pointId] || 0) + 1;
+
+    if (hiddenClasses.has(styleData.pointId)) {
+      continue;
+    }
+
+    totalVisibleCount++;
+
+    const customIcon = L.divIcon({
+      className: "custom-marker",
+      html: `<div class="${styleData.className}" style="${styleData.inlineStyle}"></div>`,
+      iconSize: [20, 20],
+      iconAnchor: [10, 10],
+    });
+
+    const popupContent = createPopupContent(row, isUnsure, lat, lon);
+
+    L.marker([lat, lon], { icon: customIcon })
+      .bindPopup(popupContent, {
+        className: "leaflet-custom-container",
+        maxWidth: 300,
+      })
+      .addTo(markerGroup);
+  }
+
+  updateLegendUI(styleMode, classCounts, totalVisibleCount);
+}
+
+// Helper: Determine appearance based on drop down
+function determinePointStyle(row, styleMode) {
+  let className = "marker-inner";
+  let inlineStyle = "";
+  let pointId = "";
+
+  if (styleMode === "view_direction") {
+    className = "marker-arrow";
+    pointId = "view_direction";
+    const dir = row.dir || 0;
+    inlineStyle = `transform: rotate(${dir}deg);`;
+  } else if (styleMode === "main_col") {
+    const csvColor = (row.main_col || "").toString().trim().toLowerCase();
+    const mappedHex = colorMap[csvColor] || "#878c8c38";
+    pointId = mappedHex;
+    const borderColor = mappedHex === "#ffffff" ? "#ccc" : "#fff";
+    inlineStyle = `background-color: ${mappedHex}; border-color: ${borderColor};`;
+  } else if (styleMode === "simple") {
+    pointId = "#3498db";
+  } else {
+    const isTrue =
+      String(
+        row[
+          styleMode === "not_spray"
+            ? "spray"
+            : styleMode === "blart_txt"
+              ? "blart_txt"
+              : styleMode === "private_prop"
+                ? "private_prop"
+                : styleMode
+        ],
+      ).toLowerCase() === "true";
+
+    let baseName = styleMode;
+    if (styleMode === "not_spray") baseName = "spray";
+    if (styleMode === "blart_txt") baseName = "blart";
+    if (styleMode === "private_prop") baseName = "private";
+
+    pointId = isTrue ? `${baseName}-true` : `${baseName}-false`;
+    className += " " + pointId;
+  }
+
+  return { className, inlineStyle, pointId };
+}
+
+// Helper: Generate HTML for popups
+function createPopupContent(row, isUnsure, lat, lon) {
+  let displayDate = "Unknown date";
+  if (row.time) {
+    const datePart = row.time.split(" ")[0];
+    const [year, month, day] = datePart.split(":");
+    if (year && month && day) {
+      displayDate = `${parseInt(day)}.${parseInt(month)}.${year}`;
+    }
+  }
+
+  const imgName = row.img ? row.img : "Unknown image";
+  const unsureTag = isUnsure ? `<span class="category-tag">UNSURE</span>` : "";
+
+  return `
+    <div class="point-popup">
+        <div class="popup-header">
+            <img src="data/img/${row.img}" class="popup-img" alt="Location image">
+        </div>
+        <div class="popup-body">
+            ${unsureTag}
+            <p>${imgName}</p>
+            <p>Photographed on ${displayDate}</p>
+            <p>Lat: ${lat.toFixed(4)}, Lon: ${lon.toFixed(4)}</p>
+            <button class="popup-btn" onclick="map.closePopup()">Close</button>
+        </div>
+    </div>
+  `;
+}
+
+// UI & Legend
+function updateLegendUI(styleMode, classCounts, totalVisibleCount) {
   const legendContent = document.getElementById("legend-content");
   let html = "";
 
-  // Helper function to build a legend row
-  const makeRow = (cssClass, label, isHex = false, isArrow = false) => {
-    let styleStr = isHex ? `background-color: ${cssClass};` : "";
-    let classStr = isArrow
-      ? "legend-arrow"
-      : `legend-shape ${isHex ? "" : cssClass}`;
-
-    return `<div class="legend-item">
-              <div class="${classStr}" style="${styleStr}"></div>
-              <span>${label}</span>
-            </div>`;
-  };
-
-  // Generate the right HTML based on the dropdown choice
   if (styleMode === "simple") {
-    html += makeRow("#3498db", "Blart Point", true);
+    html += createLegendRow("#3498db", "Blart Point", classCounts, true);
   } else if (styleMode === "view_direction") {
-    html += makeRow("", "Camera Direction", false, true);
+    html += createLegendRow(
+      "view_direction",
+      "Camera Direction",
+      classCounts,
+      false,
+      true,
+    );
   } else if (styleMode === "blart_txt") {
-    html += makeRow("blart-true", "Has Blart Text");
-    html += makeRow("blart-false", "No Blart Text");
+    html += createLegendRow("blart-true", "Has Blart Text", classCounts);
+    html += createLegendRow("blart-false", "No Blart Text", classCounts);
   } else if (styleMode === "eyes") {
-    html += makeRow("eyes-true", "Has Eyes");
-    html += makeRow("eyes-false", "No Eyes");
+    html += createLegendRow("eyes-true", "Has Eyes", classCounts);
+    html += createLegendRow("eyes-false", "No Eyes", classCounts);
   } else if (styleMode === "nose") {
-    html += makeRow("nose-true", "Has Nose");
-    html += makeRow("nose-false", "No Nose");
+    html += createLegendRow("nose-true", "Has Nose", classCounts);
+    html += createLegendRow("nose-false", "No Nose", classCounts);
   } else if (styleMode === "simpson") {
-    html += makeRow("simpson-true", "Simpson Design");
-    html += makeRow("simpson-false", "Other");
+    html += createLegendRow("simpson-true", "Simpson Design", classCounts);
+    html += createLegendRow("simpson-false", "Other", classCounts);
   } else if (styleMode === "not_spray") {
-    html += makeRow("spray-true", "Is Spray");
-    html += makeRow("spray-false", "Other (marker)");
+    html += createLegendRow("spray-true", "Is Spray", classCounts);
+    html += createLegendRow("spray-false", "Other (marker)", classCounts);
   } else if (styleMode === "private_prop") {
-    html += makeRow("private-true", "Private Property");
-    html += makeRow("private-false", "Public / Other");
+    html += createLegendRow("private-true", "Private Property", classCounts);
+    html += createLegendRow("private-false", "Public / Other", classCounts);
   } else if (styleMode === "main_col") {
-    // Dynamically generate the legend directly from the colorMap
-    for (const [colorName, hexCode] of Object.entries(colorMap)) {
-      // Capitalize the first letter for the label
+    for (const colorName in colorMap) {
+      const hexCode = colorMap[colorName];
       const label = colorName.charAt(0).toUpperCase() + colorName.slice(1);
-      html += makeRow(hexCode, label, true);
+      html += createLegendRow(hexCode, label, classCounts, true);
     }
-    // Add the fallback color for missing data
-    html += makeRow("#878c8c38", "Other / Missing", true);
+    html += createLegendRow("#878c8c38", "Other / Missing", classCounts, true);
   }
+
+  html += `
+    <div style="margin-top: 15px; display: flex; justify-content: space-between; align-items: center; color: var(--light-blue); font-size: 15px;">
+        <span>Total Visible:</span>
+        <span>${totalVisibleCount}</span>
+    </div>
+  `;
 
   legendContent.innerHTML = html;
 }
 
-// --- 3. RENDERING LOGIC ---
-function renderMarkers() {
-  // Clear existing markers before drawing new ones
-  markerGroup.clearLayers();
+function createLegendRow(
+  id,
+  label,
+  classCounts,
+  isHex = false,
+  isArrow = false,
+) {
+  const count = classCounts[id] || 0;
+  const isHidden = hiddenClasses.has(id);
+  const styleStr = isHex ? `background-color: ${id};` : "";
+  const classStr = isArrow ? "legend-arrow" : `legend-shape ${isHex ? "" : id}`;
+  const eyeOpacity = isHidden ? "0.3" : "1";
 
-  // Find out what the user selected in the dropdowns
-  const styleMode = document.getElementById("point-coloring-selector").value;
-  const showUnsure = document.getElementById("unsure-toggle").checked;
-
-  // Update the legend right before we draw the points
-  updateLegend(styleMode);
-
-  csvData.forEach((row) => {
-    const lat = parseFloat(row.lat);
-    const lon = parseFloat(row.lon);
-
-    // Evaluate if the point is unsure
-    const isUnsure = String(row.unsure).trim().toLowerCase() === "true";
-
-    // If it is unsure and the toggle is OFF, skip rendering this point
-    if (isUnsure && !showUnsure) {
-      return;
-    }
-
-    if (!isNaN(lat) && !isNaN(lon)) {
-      let className = "marker-inner"; // The default round shape
-      let inlineStyle = ""; // Used for dynamic colors or rotations
-
-      // --- LOGIC FOR POINT DESIGN ---
-      if (styleMode === "view_direction") {
-        className = "marker-arrow";
-        const dir = row.dir || 0;
-        inlineStyle = `transform: rotate(${dir}deg);`;
-      } else if (styleMode === "blart_txt") {
-        const isTrue = String(row.blart_txt).toLowerCase() === "true";
-        className += isTrue ? " blart-true" : " blart-false";
-      } else if (styleMode === "eyes") {
-        const isTrue = String(row.eyes).toLowerCase() === "true";
-        className += isTrue ? " eyes-true" : " eyes-false";
-      } else if (styleMode === "nose") {
-        const isTrue = String(row.nose).toLowerCase() === "true";
-        className += isTrue ? " nose-true" : " nose-false";
-      } else if (styleMode === "simpson") {
-        const isTrue = String(row.simpson).toLowerCase() === "true";
-        className += isTrue ? " simpson-true" : " simpson-false";
-      } else if (styleMode === "not_spray") {
-        const isTrue = String(row.spray).toLowerCase() === "true";
-        className += isTrue ? " spray-true" : " spray-false";
-      } else if (styleMode === "main_col") {
-        // Clean the CSV string (make lowercase and remove extra spaces)
-        const csvColor = (row.main_col || "").toString().trim().toLowerCase();
-
-        // Look up the hex code from the GLOBAL list. Default to grey fallback.
-        const mappedHex = colorMap[csvColor] || "#878c8c38";
-
-        inlineStyle = `background-color: ${mappedHex}; border-color: ${mappedHex === "#ffffff" ? "#ccc" : "#fff"};`;
-      } else if (styleMode === "private_prop") {
-        const isTrue = String(row.private_prop).toLowerCase() === "true";
-        className += isTrue ? " private-true" : " private-false";
-      }
-
-      // Define the custom icon
-      const customIcon = L.divIcon({
-        className: "custom-marker",
-        html: `<div class="${className}" style="${inlineStyle}"></div>`,
-        iconSize: [20, 20],
-        iconAnchor: [10, 10],
-      });
-
-      let displayDate = "Unknown date";
-      if (row.time) {
-        const datePart = row.time.split(" ")[0]; // Grabs just the "YYYY:MM:DD" half
-        const [year, month, day] = datePart.split(":");
-
-        if (year && month && day) {
-          // parseInt removes leading zeros (e.g., changes "01" to "1")
-          displayDate = `${parseInt(day)}.${parseInt(month)}.${year}`;
-        }
-      }
-
-      // --- CONDITIONAL TAGS ---
-      const unsureTag = isUnsure
-        ? `<span class="category-tag">UNSURE</span>`
-        : "";
-
-      // HTML content for the popup
-      let popupContent = `
-        <div class="my-custom-popup">
-            <div class="popup-header">
-                <img src="data/img/${row.img}" class="popup-img" alt="Location image">
-            </div>
-            <div class="popup-body">
-                ${unsureTag}
-                <p>Photographed on ${displayDate}</p>
-                <p>Lat: ${lat.toFixed(4)}, Lon: ${lon.toFixed(4)}</p>
-                <button class="popup-btn" onclick="map.closePopup()">Close</button>
-            </div>
-        </div>
-      `;
-
-      // Attach marker to the LAYER GROUP, not directly to the map
-      L.marker([lat, lon], { icon: customIcon })
-        .bindPopup(popupContent, {
-          className: "leaflet-custom-container",
-          maxWidth: 300,
-        })
-        .addTo(markerGroup);
-    }
-  });
+  return `
+    <div class="legend-item">
+      <div style="display: flex; align-items: center; gap: 10px;">
+          <div class="${classStr}" style="${styleStr}"></div>
+          <span>${label} (${count})</span>
+      </div>
+      <svg onclick="toggleLegendVisibility('${id}')" style="width: 18px; cursor: pointer; opacity: ${eyeOpacity}; fill: var(--light-blue); transition: 0.2s;" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 576 512">
+        <path d="M288 80c-65.2 0-118.8 29.6-159.9 67.7C89.6 183.5 63 226 49.4 256c13.6 30 40.2 72.5 78.6 108.3C169.2 402.4 222.8 432 288 432s118.8-29.6 159.9-67.7C486.4 328.5 513 286 526.6 256c-13.6-30-40.2-72.5-78.6-108.3C406.8 109.6 353.2 80 288 80zM95.4 112.6C142.5 68.8 207.2 32 288 32s145.5 36.8 192.6 80.6c46.8 43.5 78.1 95.4 93 131.1c3.3 7.9 3.3 16.7 0 24.6c-14.9 35.7-46.2 87.7-93 131.1C433.5 443.2 368.8 480 288 480s-145.5-36.8-192.6-80.6C48.6 356 17.3 304 2.5 268.3c-3.3-7.9-3.3-16.7 0-24.6C17.3 208 48.6 156 95.4 112.6zM288 336c44.2 0 80-35.8 80-80s-35.8-80-80-80c-.7 0-1.3 0-2 0c1.3 5.1 2 10.5 2 16c0 35.3-28.7 64-64 64c-5.5 0-10.9-.7-16-2c0 .7 0 1.3 0 2c0 44.2 35.8 80 80 80zm0-208a128 128 0 1 1 0 256 128 128 0 1 1 0-256z"/>
+      </svg>
+    </div>`;
 }
 
-// --- STARTUP ---
-window.addEventListener("load", initMap);
+function toggleLegendVisibility(classId) {
+  if (hiddenClasses.has(classId)) {
+    hiddenClasses.delete(classId);
+  } else {
+    hiddenClasses.add(classId);
+  }
+  renderMapPoints();
+}
