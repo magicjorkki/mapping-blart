@@ -64,9 +64,10 @@ function setupEventListeners() {
     });
 }
 
-// Blart is main CSV, others are backups
+// Blart is main CSV, others are backups. ?t= is cache buster
 function fetchData() {
-  Papa.parse("data/csv/blart.csv", {
+  const csvUrl = "data/csv/blart.csv?t=" + new Date().getTime();
+  Papa.parse(csvUrl, {
     download: true,
     header: true,
     complete: function (results) {
