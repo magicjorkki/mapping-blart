@@ -253,7 +253,7 @@ html {
   width: 18px;
   height: 18px;
   border-radius: 50%;
-  border: 1.5px solid white;
+  border: 2px solid white;
 }
 
 .legend-arrow {
@@ -265,6 +265,17 @@ html {
   border-radius: 0;
   border-top: none;
   background: none;
+}
+
+.legend-square {
+  width: 18px;
+  height: 18px;
+  box-sizing: border-box;
+  border-radius: 2px;
+}
+
+#area-legend {
+  padding-left: 2px;
 }
 
 /* Toggles */

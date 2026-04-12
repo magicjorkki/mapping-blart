@@ -18,8 +18,8 @@ import os
 # new_img_req;unsure;notes
 # 24.         25.    26.
 
-csv_file = 'Mapping-Blart/data/csv/blart.csv'
-img_dir = 'Mapping-Blart/data/img'
+csv_file = '/Users/leevi/Documents/Ohjelmointi/Blart/Mapping-Blart/data/csv/blart.csv'
+img_dir = '/Users/leevi/Documents/Ohjelmointi/Blart/Mapping-Blart/data/img'
 
 boolean_attrs = [
     'blart_txt', 'bold', 'eyes', 'nose', 'simpson', 
@@ -33,7 +33,7 @@ text_attrs = [
 
 def label_images():
     if not os.path.exists(csv_file):
-        print(f"Error: {csv_file} not found.")
+        print(f"{csv_file} not found.")
         return
     
     df = pd.read_csv(csv_file, sep=',')

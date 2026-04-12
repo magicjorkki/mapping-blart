@@ -77,30 +77,54 @@ function fetchData() {
 }
 
 function loadAreaLayer(layerType) {
+  const areaLegend = document.getElementById("area-legend");
+
   // Remove existing
   if (currentAreaLayer) {
     map.removeLayer(currentAreaLayer);
     currentAreaLayer = null;
   }
+
   if (layerType === "none") {
+    areaLegend.style.display = "none";
+    areaLegend.innerHTML = "";
     return;
   }
 
   // Search Areas
   if (layerType === "search_areas") {
+    areaLegend.style.display = "block";
+
+    areaLegend.innerHTML =
+      createAreaLegendRow(
+        "rgba(222, 33, 33, 0.8)",
+        "rgba(255, 255, 255, 0.75)",
+        "Not searched",
+      ) +
+      createAreaLegendRow(
+        "rgba(241, 155, 17, 0.8)",
+        "rgba(255, 255, 255, 0.75)",
+        "Partly searched",
+      ) +
+      createAreaLegendRow(
+        "rgba(17, 221, 44, 0.8)",
+        "rgba(255, 255, 255, 0.75)",
+        "Fully searched",
+      );
+
     fetch("data/geojson/search_areas.geojson")
       .then((response) => response.json())
       .then((data) => {
         currentAreaLayer = L.geoJSON(data, {
           style: function (feature) {
-            let boroughStatus = feature.properties.status;
+            let areaStatus = feature.properties.status;
             let activeColor = "#00000000";
 
-            if (boroughStatus === 0) {
+            if (areaStatus === 0) {
               activeColor = "#de2121";
-            } else if (boroughStatus === 1) {
+            } else if (areaStatus === 1) {
               activeColor = "#f19b11";
-            } else if (boroughStatus === 2) {
+            } else if (areaStatus === 2) {
               activeColor = "#11dd2c";
             }
 
@@ -112,50 +136,56 @@ function loadAreaLayer(layerType) {
               opacity: 0.8,
             };
           },
+        }).addTo(map);
+      });
+  }
+
+  // Districts
+  else if (layerType === "districts") {
+    areaLegend.style.display = "block";
+    areaLegend.innerHTML = createAreaLegendRow(
+      "transparent",
+      "#ffffff",
+      "Joensuu Districts",
+    );
+
+    fetch("data/geojson/districts.geojson")
+      .then((response) => response.json())
+      .then((data) => {
+        currentAreaLayer = L.geoJSON(data, {
+          style: function (feature) {
+            return {
+              color: "#ffffff",
+              weight: 2,
+              fillColor: "transparent",
+              fillOpacity: 0,
+              opacity: 1,
+            };
+          },
           onEachFeature: function (feature, layer) {
-            if (feature.properties && feature.properties.id) {
-              layer.bindPopup(
-                `<b>Borough:</b> ${feature.properties.id}<br>
-                <b>Status:</b> ${feature.properties.status}`,
-              );
-            }
+            const name =
+              feature.properties.name ||
+              feature.properties.Name ||
+              "Unknown District";
+            layer.bindPopup(`<b>District:</b> ${name}`);
           },
         }).addTo(map);
       })
       .catch((error) =>
-        console.error("Error loading the search_areas GeoJSON:", error),
+        console.error("Error loading the districts GeoJSON:", error),
       );
   }
+}
 
-  // Districts
-  //else if (layerType === "districts") {
-  //  fetch("data/geojson/districts.geojson")
-  //    .then((response) => response.json())
-  //    .then((data) => {
-  //      currentAreaLayer = L.geoJSON(data, {
-  //        style: function (feature) {
-  //          return {
-  //            color: "#ffffff", // White borders
-  //            weight: 2, // Slightly thicker to stand out
-  //            fillColor: "transparent",
-  //            fillOpacity: 0,
-  //            opacity: 1,
-  //          };
-  //        },
-  //        onEachFeature: function (feature, layer) {
-  //          // Optional: Show the district name if it exists in the geojson properties
-  //          const name =
-  //            feature.properties.name ||
-  //            feature.properties.Name ||
-  //            "Unknown District";
-  //          layer.bindPopup(`<b>District:</b> ${name}`);
-  //        },
-  //      }).addTo(map);
-  //    })
-  //    .catch((error) =>
-  //      console.error("Error loading the districts GeoJSON:", error),
-  //    );
-  //}
+// Area Legend
+function createAreaLegendRow(bgColor, borderColor, label) {
+  return `
+    <div class="legend-item">
+      <div style="display: flex; align-items: center; gap: 10px;">
+          <div class="legend-square" style="background-color: ${bgColor}; border: 2px solid ${borderColor};"></div>
+          <span>${label}</span>
+      </div>
+    </div>`;
 }
 
 // Rendering
@@ -288,7 +318,7 @@ function updateLegendUI(styleMode, classCounts, totalVisibleCount) {
   let html = "";
 
   if (styleMode === "simple") {
-    html += createLegendRow("#3498db", "Blart Point", classCounts, true);
+    html += createLegendRow("#4cb0f3", "Blart Point", classCounts, true);
   } else if (styleMode === "view_direction") {
     html += createLegendRow(
       "view_direction",
@@ -321,13 +351,12 @@ function updateLegendUI(styleMode, classCounts, totalVisibleCount) {
       const label = colorName.charAt(0).toUpperCase() + colorName.slice(1);
       html += createLegendRow(hexCode, label, classCounts, true);
     }
-    html += createLegendRow("#878c8c38", "Other / Missing", classCounts, true);
+    html += createLegendRow("#8989890d", "Other / Missing", classCounts, true);
   }
 
   html += `
-    <div style="margin-top: 15px; display: flex; justify-content: space-between; align-items: center; color: var(--light-blue); font-size: 15px;">
-        <span>Total:</span>
-        <span>${totalVisibleCount}</span>
+    <div style="margin-top: 15px; display: flex; justify-content: space-between; align-items: center; color: var(--light-blue); font-size: 14px;">
+        <span>Total: ${totalVisibleCount}</span>
     </div>
   `;
 

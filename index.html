@@ -32,6 +32,7 @@
             <option value="search_areas">Search Areas</option>
             <!--<option value="districts">Joensuu Districts</option>-->
           </select>
+          <div id="area-legend" style="display: none; margin-top: 10px"></div>
         </div>
 
         <div class="control-group">
@@ -56,7 +57,9 @@
         <div
           class="toggle-container"
           onclick="document.getElementById('unsure-toggle').click()"
+          style="display: none"
         >
+          <!--display none: unsure toggle not visible-->
           <div class="switch">
             <input
               type="checkbox"
