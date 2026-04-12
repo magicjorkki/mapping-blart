@@ -1,10 +1,11 @@
-// Application State
 let map;
 let csvData = [];
-let currentLayer;
+let currentBaseLayer;
+let currentAreaLayer = null;
 let markerGroup;
 let hiddenClasses = new Set();
 
+// Main_col colors
 const colorMap = {
   blue: "#2590d7",
   pink: "#ea33bf",
@@ -15,32 +16,38 @@ const colorMap = {
   white: "#f4f4f4",
 };
 
-const tileLayers = {
+const baseTileLayers = {
   osm: L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"),
   satellite: L.tileLayer(
     "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}",
   ),
 };
 
-// Initialization
 window.addEventListener("load", initializeApp);
 
 function initializeApp() {
-  map = L.map("map").setView([62.6006023, 29.7621209], 13);
-  currentLayer = tileLayers.satellite.addTo(map);
+  map = L.map("map").setView([62.6, 29.8], 13); // Joensuu
+  currentBaseLayer = baseTileLayers.satellite.addTo(map); // Satellite as default
   markerGroup = L.layerGroup().addTo(map);
 
   setupEventListeners();
   fetchData();
+  loadAreaLayer(document.getElementById("area-selector").value);
 }
 
 function setupEventListeners() {
   document
     .getElementById("map-selector")
     .addEventListener("change", function (event) {
-      map.removeLayer(currentLayer);
-      currentLayer = tileLayers[event.target.value];
-      currentLayer.addTo(map);
+      map.removeLayer(currentBaseLayer);
+      currentBaseLayer = baseTileLayers[event.target.value];
+      currentBaseLayer.addTo(map);
+    });
+
+  document
+    .getElementById("area-selector")
+    .addEventListener("change", function (event) {
+      loadAreaLayer(event.target.value);
     });
 
   document
@@ -57,7 +64,7 @@ function setupEventListeners() {
     });
 }
 
-// Data Handling
+// Blart is main CSV, others are backups
 function fetchData() {
   Papa.parse("data/csv/blart.csv", {
     download: true,
@@ -69,7 +76,89 @@ function fetchData() {
   });
 }
 
-// Rendering Logic
+function loadAreaLayer(layerType) {
+  // Remove existing
+  if (currentAreaLayer) {
+    map.removeLayer(currentAreaLayer);
+    currentAreaLayer = null;
+  }
+  if (layerType === "none") {
+    return;
+  }
+
+  // Search Areas
+  if (layerType === "search_areas") {
+    fetch("data/geojson/search_areas.geojson")
+      .then((response) => response.json())
+      .then((data) => {
+        currentAreaLayer = L.geoJSON(data, {
+          style: function (feature) {
+            let boroughStatus = feature.properties.status;
+            let activeColor = "#00000000";
+
+            if (boroughStatus === 0) {
+              activeColor = "#de2121";
+            } else if (boroughStatus === 1) {
+              activeColor = "#f19b11";
+            } else if (boroughStatus === 2) {
+              activeColor = "#11dd2c";
+            }
+
+            return {
+              color: "rgba(255, 255, 255, 0.75)",
+              weight: 0.75,
+              fillColor: activeColor,
+              fillOpacity: 0.4,
+              opacity: 0.8,
+            };
+          },
+          onEachFeature: function (feature, layer) {
+            if (feature.properties && feature.properties.id) {
+              layer.bindPopup(
+                `<b>Borough:</b> ${feature.properties.id}<br>
+                <b>Status:</b> ${feature.properties.status}`,
+              );
+            }
+          },
+        }).addTo(map);
+      })
+      .catch((error) =>
+        console.error("Error loading the search_areas GeoJSON:", error),
+      );
+  }
+
+  // Districts
+  //else if (layerType === "districts") {
+  //  fetch("data/geojson/districts.geojson")
+  //    .then((response) => response.json())
+  //    .then((data) => {
+  //      currentAreaLayer = L.geoJSON(data, {
+  //        style: function (feature) {
+  //          return {
+  //            color: "#ffffff", // White borders
+  //            weight: 2, // Slightly thicker to stand out
+  //            fillColor: "transparent",
+  //            fillOpacity: 0,
+  //            opacity: 1,
+  //          };
+  //        },
+  //        onEachFeature: function (feature, layer) {
+  //          // Optional: Show the district name if it exists in the geojson properties
+  //          const name =
+  //            feature.properties.name ||
+  //            feature.properties.Name ||
+  //            "Unknown District";
+  //          layer.bindPopup(`<b>District:</b> ${name}`);
+  //        },
+  //      }).addTo(map);
+  //    })
+  //    .catch((error) =>
+  //      console.error("Error loading the districts GeoJSON:", error),
+  //    );
+  //}
+}
+
+// Rendering
 function renderMapPoints() {
   markerGroup.clearLayers();
 
@@ -118,7 +207,7 @@ function renderMapPoints() {
   updateLegendUI(styleMode, classCounts, totalVisibleCount);
 }
 
-// Helper: Determine appearance based on drop down
+// (Helper) Style from dropdown
 function determinePointStyle(row, styleMode) {
   let className = "marker-inner";
   let inlineStyle = "";
@@ -163,7 +252,7 @@ function determinePointStyle(row, styleMode) {
   return { className, inlineStyle, pointId };
 }
 
-// Helper: Generate HTML for popups
+// (Helper) Popup HTML
 function createPopupContent(row, isUnsure, lat, lon) {
   let displayDate = "Unknown date";
   if (row.time) {
@@ -193,7 +282,7 @@ function createPopupContent(row, isUnsure, lat, lon) {
   `;
 }
 
-// UI & Legend
+// Legend
 function updateLegendUI(styleMode, classCounts, totalVisibleCount) {
   const legendContent = document.getElementById("legend-content");
   let html = "";
@@ -237,7 +326,7 @@ function updateLegendUI(styleMode, classCounts, totalVisibleCount) {
 
   html += `
     <div style="margin-top: 15px; display: flex; justify-content: space-between; align-items: center; color: var(--light-blue); font-size: 15px;">
-        <span>Total Visible:</span>
+        <span>Total:</span>
         <span>${totalVisibleCount}</span>
     </div>
   `;

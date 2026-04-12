@@ -26,10 +26,19 @@
         </div>
 
         <div class="control-group">
+          <h2>Area visualization</h2>
+          <select id="area-selector">
+            <option value="none">None</option>
+            <option value="search_areas">Search Areas</option>
+            <!--<option value="districts">Joensuu Districts</option>-->
+          </select>
+        </div>
+
+        <div class="control-group">
           <h2>Point visualization</h2>
           <select id="point-coloring-selector">
-            <option value="simple">Simple (Default)</option>
-            <option value="main_col">Main Color</option>
+            <option value="main_col">Main Color (Default)</option>
+            <option value="simple">Simple</option>
             <option value="blart_txt">Has Blart Text</option>
             <option value="eyes">Has Eyes</option>
             <option value="nose">Has Nose</option>
@@ -41,7 +50,6 @@
         </div>
 
         <div class="control-group" id="legend-container">
-          <h2>On the map</h2>
           <div id="legend-content"></div>
         </div>
 
